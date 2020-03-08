@@ -6,7 +6,7 @@
 #include "client/Message.cpp"
 
 using boost::asio::ip::tcp;
-using chat_message_queue = std::deque<Client::Message>;
+using chat_message_queue = std::deque<Remote::Message>;
 
 class BulkClient
 {
@@ -19,7 +19,7 @@ class BulkClient
             do_connect(endpoint_iterator);
         }
 
-        void write(const Client::Message& msg)
+        void write(const Remote::Message& msg)
         {
             io_service_.post(
                     [this, msg]()
@@ -54,7 +54,7 @@ class BulkClient
         void do_read_header()
         {
             boost::asio::async_read(socket_,
-                    boost::asio::buffer(read_msg_.data(), Client::Message::header_length),
+                    boost::asio::buffer(read_msg_.data(), Remote::Message::header_length),
                     [this](boost::system::error_code ec, std::size_t /*length*/)
                     {
                         if (!ec && read_msg_.decode_header())
@@ -112,7 +112,7 @@ class BulkClient
     private:
         boost::asio::io_service& io_service_;
         tcp::socket socket_;
-        Client::Message read_msg_;
+        Remote::Message read_msg_;
         chat_message_queue write_msgs_;
 };
 
@@ -134,10 +134,10 @@ int main(int argc, char* argv[])
 
         std::thread t([&io_service](){ io_service.run(); });
 
-        char line[Client::Message::max_body_length + 1];
-        while (std::cin.getline(line, Client::Message::max_body_length + 1))
+        char line[Remote::Message::max_body_length + 1];
+        while (std::cin.getline(line, Remote::Message::max_body_length + 1))
         {
-            Client::Message msg;
+            Remote::Message msg;
             msg.body_length(std::strlen(line));
             std::memcpy(msg.body(), line, msg.body_length());
             msg.encode_header();

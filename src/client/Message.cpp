@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 
-namespace Client
+namespace Remote
 {
     class Message
     {
