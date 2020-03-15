@@ -6,7 +6,7 @@
 #include "remote/Message.cpp"
 
 using boost::asio::ip::tcp;
-using chat_message_queue = std::deque<Remote::Message>;
+using MessageQueue = std::deque<Remote::Message>;
 
 class BulkClient
 {
@@ -113,7 +113,7 @@ class BulkClient
         boost::asio::io_service& io_service_;
         tcp::socket socket_;
         Remote::Message read_msg_;
-        messageQueue write_msgs_;
+        MessageQueue write_msgs_;
 };
 
 int main(int argc, char* argv[])

@@ -71,7 +71,7 @@ class Bulkmt
             mainMetrics.lineCount++;
         }
 
-        void ExecuteAll(const char* data, size_t size)
+        void ExecuteAll(const std::string& data, size_t size)
         {
             std::stringstream buffer;
             buffer << data;

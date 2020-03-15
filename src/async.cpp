@@ -2,6 +2,7 @@
 #include "async.h"
 #include "Bulkmt.h"
 #include "BulkImpl.h"
+#include <array>
 
 namespace async
 {
@@ -9,10 +10,13 @@ namespace async
     {
             struct Command
             {
-                Command(const char* data, std::size_t size)
-                        : data(data)
+                Command(const char* rawData, std::size_t size)
+//                        : data(std::make_shared<char>())
+                        : data(rawData, size)
                         , size(size)
                 {
+
+//                    std::memcpy(data.get(), rawData, size);
                 }
 
                 Command(Command&& other)
@@ -21,7 +25,9 @@ namespace async
                 {
                 }
 
-                const char* data;
+//                std::shared_ptr<char> data;
+                std::string data;
+//                const char* data;
                 std::size_t size;
             };
 
@@ -55,6 +61,7 @@ namespace async
                                 _commandQueue.pop();
                                 locker.unlock();
 
+//                                bulk->ExecuteAll(command.data.get(), command.size);
                                 bulk->ExecuteAll(command.data, command.size);
                             }
                         }

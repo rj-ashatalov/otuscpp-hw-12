@@ -27,7 +27,7 @@ class chat_participant
 
 typedef std::shared_ptr<chat_participant> chat_participant_ptr;
 
-class chat_room
+class chat_room //cущность, которая объединяет различных подключившихся участников
 {
     public:
         void join(chat_participant_ptr participant)
@@ -84,7 +84,7 @@ class chat_session
             do_read_header();
         }
 
-        void deliver(const Remote::Message& msg)
+        virtual void deliver(const Remote::Message& msg) override
         {
             bool write_in_progress = !_write_msgs.empty();
             _write_msgs.push_back(msg);
@@ -97,37 +97,49 @@ class chat_session
     private:
         void do_read_header()
         {
-            auto self(shared_from_this());
+            do_read_body();
+            /*auto self(shared_from_this());
             boost::asio::async_read(_socket,
                     boost::asio::buffer(_read_msg.data(), Remote::Message::header_length),
                     [this, self](boost::system::error_code ec, std::size_t length)
                     {
+                        {
+                            std::unique_lock<std::mutex> locker(Utils::lockPrint);
+                            std::cout << __PRETTY_FUNCTION__ << " read body: " << _read_msg.data() << "%end of message%" << std::endl;
+                        }
                         if (!ec && _read_msg.decode_header())
                         {
                             do_read_body();
                         }
-                        /*else
+                        *//*else
                         {
                             _handler->leave(shared_from_this());
-                        }*/
-                    });
+                        }*//*
+                    });*/
         }
 
         void do_read_body()
         {
             auto self(shared_from_this());
             boost::asio::async_read(_socket,
-                    boost::asio::buffer(_read_msg.body(), _read_msg.body_length()),
+                    boost::asio::buffer(_read_msg.body(), 512/*_read_msg.body_length()*/),
                     [this, self](boost::system::error_code ec, std::size_t length)
                     {
-                        if (!ec)
                         {
-                            _handler->deliver(_read_msg);
+                            std::unique_lock<std::mutex> locker(Utils::lockPrint);
+                            std::cout << __PRETTY_FUNCTION__ << " read data: " << _read_msg.body() << "%end of message%" << std::endl;
+                        }
+                        if (!ec || (ec == boost::asio::error::eof && length > 0))
+                        {
+//                            _handler->deliver(_read_msg);
+                            async::receive(_handler, _read_msg.body(), length);
                             do_read_header();
                         }
                         else
                         {
-                            _handler->leave(shared_from_this());
+                            std::unique_lock<std::mutex> locker(Utils::lockPrint);
+                            std::cout << __PRETTY_FUNCTION__ << " error: " << ec.message() << std::endl;
+//                            _handler->leave(shared_from_this());
                         }
                     });
         }
@@ -140,7 +152,7 @@ class chat_session
                             _write_msgs.front().length()),
                     [this, self](boost::system::error_code ec, std::size_t length)
                     {
-                        if (!ec)
+                        /*if (!ec)
                         {
                             _write_msgs.pop_front();
                             if (!_write_msgs.empty())
@@ -151,7 +163,7 @@ class chat_session
                         else
                         {
                             _handler->leave(shared_from_this());
-                        }
+                        }*/
                     });
         }
 
@@ -175,6 +187,10 @@ class BulkServer
 
         ~BulkServer()
         {
+            {
+                std::unique_lock<std::mutex> locker(Utils::lockPrint);
+                std::cout << __PRETTY_FUNCTION__ << std::endl;
+            }
             if (_handler)
             {
                 async::disconnect(_handler);
@@ -215,9 +231,9 @@ int main(int argc, char* argv[])
         }
 
         boost::asio::io_service io_service;
-        tcp::endpoint endpoint(tcp::v4(), std::atoi(argv[0]));
+        tcp::endpoint endpoint(tcp::v4(), std::atoi(argv[1]));
 
-        BulkServer bulkServer(io_service, std::move(endpoint), std::atoi(argv[1]));
+        BulkServer bulkServer(io_service, std::move(endpoint), std::atoi(argv[2]));
 
         io_service.run();
     }
@@ -225,6 +241,9 @@ int main(int argc, char* argv[])
     {
         std::cerr << "Exception: " << e.what() << "\n";
     }
-
+    {
+        std::unique_lock<std::mutex> locker(Utils::lockPrint);
+        std::cout << "Stopping the bulk server" << std::endl;
+    }
     return 0;
 }
