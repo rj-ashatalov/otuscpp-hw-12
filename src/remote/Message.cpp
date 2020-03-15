@@ -9,7 +9,7 @@ namespace Remote
         public:
             enum
             {
-                header_length = 4
+                header_length = 0
             };
             enum
             {

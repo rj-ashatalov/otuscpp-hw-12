@@ -8,28 +8,7 @@ namespace async
 {
     struct Worker: public std::thread
     {
-            struct Command
-            {
-                Command(const char* rawData, std::size_t size)
-//                        : data(std::make_shared<char>())
-                        : data(rawData, size)
-                        , size(size)
-                {
-
-//                    std::memcpy(data.get(), rawData, size);
-                }
-
-                Command(Command&& other)
-                        : data(std::move(other.data))
-                        , size(std::move(other.size))
-                {
-                }
-
-//                std::shared_ptr<char> data;
-                std::string data;
-//                const char* data;
-                std::size_t size;
-            };
+            using Command = std::string;
 
             std::shared_ptr<Bulkmt> bulk;
             BulkImpl _bulkImpl;
@@ -62,7 +41,7 @@ namespace async
                                 locker.unlock();
 
 //                                bulk->ExecuteAll(command.data.get(), command.size);
-                                bulk->ExecuteAll(command.data, command.size);
+                                bulk->ExecuteAll(command, command.size());
                             }
                         }
                         bulk->Finalize();
