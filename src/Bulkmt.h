@@ -73,6 +73,12 @@ class Bulkmt
 
         void ExecuteAll(const std::string& data, size_t size)
         {
+            if (size == 1 && *data.data() == '\0')
+            {
+                SetState<Sequence>();
+                return;
+            }
+
             std::stringstream buffer;
             buffer << data;
 

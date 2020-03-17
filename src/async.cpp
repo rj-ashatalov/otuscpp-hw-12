@@ -6,13 +6,18 @@
 
 namespace async
 {
-    struct Worker: public std::thread
+    struct Worker
     {
             using Command = std::string;
 
             std::shared_ptr<Bulkmt> bulk;
             BulkImpl _bulkImpl;
 
+        private:
+            std::mutex _lockCommandLoop;
+            std::queue<Command> _commandQueue;
+
+        public:
             std::condition_variable checkCommandLoop;
             std::atomic_bool isDone = false;
             std::thread workerThread;
@@ -20,6 +25,7 @@ namespace async
             Worker(const std::size_t& buffer)
                     : bulk(new Bulkmt(static_cast<int>(buffer)))
                     , _bulkImpl(bulk)
+                    , _lockCommandLoop()
                     , workerThread([this]()
                     {
                         {
@@ -29,7 +35,7 @@ namespace async
                         while (!isDone)
                         {
                             std::unique_lock<std::mutex> locker(_lockCommandLoop);
-                            checkCommandLoop.wait(locker, [&]()
+                            checkCommandLoop.wait(locker, [this]()
                             {
                                 return !_commandQueue.empty() || isDone;
                             });
@@ -70,10 +76,6 @@ namespace async
                 isDone = true;
                 checkCommandLoop.notify_one();
             }
-
-        private:
-            std::mutex _lockCommandLoop;
-            std::queue<Command> _commandQueue;
     };
 
 
