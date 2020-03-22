@@ -133,7 +133,7 @@ class BulkImpl
                 std::lock_guard<std::mutex> lock(lockFileQueue);
 
                 std::stringstream currentTime;
-                currentTime << timestamp << "_" << std::to_string(_bulk->mainMetrics.lineCount);
+                currentTime << timestamp << "_" << std::this_thread::get_id() << "_" << std::to_string(_bulk->mainMetrics.lineCount);
                 fileLogger.PrepareFilename("_bulk" + currentTime.str());
             });
 
@@ -153,8 +153,21 @@ class BulkImpl
 
         void Complete()
         {
-            while (!loggerQueue.empty() || !fileQueue.empty())
+            while (true)
             {
+                auto isAllEmpty = true;
+                {
+                    std::unique_lock<std::mutex> fileLocker(lockFileQueue);
+                    isAllEmpty = isAllEmpty && fileQueue.empty();
+                }
+                {
+                    std::unique_lock<std::mutex> loggerLocker(lockLoggerQueue);
+                    isAllEmpty = isAllEmpty && loggerQueue.empty();
+                }
+                if (isAllEmpty)
+                {
+                    break;
+                }
                 threadLogCheck.notify_one();
                 threadFileCheck.notify_one();
             }
@@ -169,20 +182,20 @@ class BulkImpl
 
             {
                 std::unique_lock<std::mutex> locker(Utils::lockPrint);
-                std::cout << "=== " << std::this_thread::get_id() << " ===" << std::endl;
-                std::cout << "common поток - " << _bulk->mainMetrics.lineCount << " строк, "
+                std::cerr << "=== " << std::this_thread::get_id() << " ===" << std::endl;
+                std::cerr << "common поток - " << _bulk->mainMetrics.lineCount << " строк, "
                           << _bulk->mainMetrics.commandCount << " команд, "
                           << _bulk->mainMetrics.blockCount << " блок" << std::endl;
 
-                std::cout << "log поток - " << logMetrics.blockCount << " блок, "
+                std::cerr << "log поток - " << logMetrics.blockCount << " блок, "
                           << logMetrics.commandCount << " команд, " << std::endl;
 
-                std::cout << "file1 поток - " << fileMetricsOne.blockCount << " блок, "
+                std::cerr << "file1 поток - " << fileMetricsOne.blockCount << " блок, "
                           << fileMetricsOne.commandCount << " команд, " << std::endl;
 
-                std::cout << "file2 поток - " << fileMetricsTwo.blockCount << " блок, "
+                std::cerr << "file2 поток - " << fileMetricsTwo.blockCount << " блок, "
                           << fileMetricsTwo.commandCount << " команд, " << std::endl;
-                std::cout << "=== " << std::this_thread::get_id() << " ===" << std::endl;
+                std::cerr << "=== " << std::this_thread::get_id() << " ===" << std::endl;
             }
         }
 };
