@@ -1,9 +1,7 @@
 #include <cstdlib>
 #include <deque>
 #include <iostream>
-#include <list>
 #include <memory>
-#include <set>
 #include <utility>
 #include <boost/asio.hpp>
 #include <utils/utils.h>
@@ -15,61 +13,7 @@ using boost::asio::ip::tcp;
 using MessageQueue = std::deque<Remote::Message>;
 
 
-class chat_participant
-{
-    public:
-        virtual ~chat_participant()
-        {
-        }
-
-        virtual void deliver(const Remote::Message& msg) = 0;
-};
-
-typedef std::shared_ptr<chat_participant> chat_participant_ptr;
-
-class chat_room //cущность, которая объединяет различных подключившихся участников
-{
-    public:
-        void join(chat_participant_ptr participant)
-        {
-            participants_.insert(participant);
-            for (auto msg: recent_msgs_)
-            {
-                participant->deliver(msg);
-            }
-        }
-
-        void leave(chat_participant_ptr participant)
-        {
-            participants_.erase(participant);
-        }
-
-        void deliver(const Remote::Message& msg)
-        {
-            recent_msgs_.push_back(msg);
-            while (recent_msgs_.size() > max_recent_msgs)
-            {
-                recent_msgs_.pop_front();
-            }
-
-            for (auto participant: participants_)
-            {
-                participant->deliver(msg);
-            }
-        }
-
-    private:
-        std::set<chat_participant_ptr> participants_;
-        enum
-        {
-            max_recent_msgs = 100
-        };
-        MessageQueue recent_msgs_;
-};
-
-
-class chat_session
-        : public chat_participant, public std::enable_shared_from_this<chat_session>
+class chat_session : public std::enable_shared_from_this<chat_session>
 {
     public:
         chat_session(tcp::socket socket, async::handle_t handler)
@@ -80,97 +24,52 @@ class chat_session
 
         void start()
         {
-//            _handler->join(shared_from_this());
-            do_read_header();
-        }
-
-        virtual void deliver(const Remote::Message& msg) override
-        {
-            bool write_in_progress = !_write_msgs.empty();
-            _write_msgs.push_back(msg);
-            if (!write_in_progress)
-            {
-                do_write();
-            }
+            do_read_data();
         }
 
     private:
-        void do_read_header()
-        {
-            do_read_body();
-            /*auto self(shared_from_this());
-            boost::asio::async_read(_socket,
-                    boost::asio::buffer(_read_msg.data(), Remote::Message::header_length),
-                    [this, self](boost::system::error_code ec, std::size_t length)
-                    {
-                        {
-                            std::unique_lock<std::mutex> locker(Utils::lockPrint);
-                            std::cout << __PRETTY_FUNCTION__ << " read body: " << _read_msg.data() << "%end of message%" << std::endl;
-                        }
-                        if (!ec && _read_msg.decode_header())
-                        {
-                            do_read_body();
-                        }
-                        *//*else
-                        {
-                            _handler->leave(shared_from_this());
-                        }*//*
-                    });*/
-        }
-
-        void do_read_body()
+        void do_read_data()
         {
             auto self(shared_from_this());
             boost::asio::async_read(_socket,
-                    boost::asio::buffer(_read_msg.body(), 512/*_read_msg.body_length()*/),
+                    boost::asio::buffer(_read_msg.body(), Remote::Message::max_body_length),
                     [this, self](boost::system::error_code ec, std::size_t length)
                     {
                         {
                             std::unique_lock<std::mutex> locker(Utils::lockPrint);
-                            std::cout << __PRETTY_FUNCTION__ << " read data: " << _read_msg.body() << "%end of message%" << std::endl;
+                            std::cout << __PRETTY_FUNCTION__ << " read data: " << _read_msg.body() << "%end of message%"
+                                      << std::endl;
                         }
-                        if (!ec || (ec == boost::asio::error::eof && length > 0))
+                        if (length > 0)
                         {
-//                            _handler->deliver(_read_msg);
                             async::receive(_handler, _read_msg.body(), length);
-                            do_read_header();
-                        }
-                        else
-                        {
-                            std::unique_lock<std::mutex> locker(Utils::lockPrint);
-                            std::cout << __PRETTY_FUNCTION__ << " error: " << ec.message() << std::endl;
-//                            _handler->leave(shared_from_this());
-                        }
-                    });
-        }
-
-        void do_write()
-        {
-            auto self(shared_from_this());
-            boost::asio::async_write(_socket,
-                    boost::asio::buffer(_write_msgs.front().data(),
-                            _write_msgs.front().length()),
-                    [this, self](boost::system::error_code ec, std::size_t length)
-                    {
-                        /*if (!ec)
-                        {
-                            _write_msgs.pop_front();
-                            if (!_write_msgs.empty())
+                            if (!ec)
                             {
-                                do_write();
+                                do_read_data();
+                            }
+                            else
+                            {
+                                {
+                                    std::unique_lock<std::mutex> locker(Utils::lockPrint);
+                                    std::cout << "Disconnected: " << ec.message() << std::endl;
+                                }
+                                async::reset(_handler);
                             }
                         }
-                        else
+                        else if (ec)
                         {
-                            _handler->leave(shared_from_this());
-                        }*/
+                            {
+                                std::unique_lock<std::mutex> locker(Utils::lockPrint);
+                                std::cout << __PRETTY_FUNCTION__ << " error: " << ec.message() << std::endl;
+                            }
+                            async::reset(_handler);
+                        }
                     });
         }
 
         tcp::socket _socket;
         async::handle_t _handler;
         Remote::Message _read_msg;
-        MessageQueue _write_msgs;
 };
 
 

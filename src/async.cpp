@@ -22,6 +22,8 @@ namespace async
             std::atomic_bool isDone = false;
             std::thread workerThread;
 
+            std::atomic_bool isForceFinalize;
+
             Worker(const std::size_t& buffer)
                     : bulk(new Bulkmt(static_cast<int>(buffer)))
                     , _bulkImpl(bulk)
@@ -47,6 +49,14 @@ namespace async
                                 locker.unlock();
 
                                 bulk->ExecuteAll(command, command.size());
+                                bulk->CleanOpenBlocks();
+
+                                locker.lock();
+                                if (isForceFinalize && _commandQueue.empty())
+                                {
+                                    isForceFinalize = false;
+                                    bulk->Finalize();
+                                }
                             }
                         }
                         bulk->Finalize();
@@ -85,12 +95,23 @@ namespace async
             }
     };
 
-
     handle_t connect(std::size_t bulk)
     {
         _contextCache.emplace_back(new Worker(bulk));
         auto& ctx = _contextCache[_contextCache.size() - 1];
         return ctx.get();
+    }
+
+    void reset(handle_t handle)
+    {
+        if (handle == nullptr)
+        {
+            return;
+        }
+
+        auto worker = static_cast<Worker*>(handle);
+        worker->isForceFinalize = true;
+        worker->checkCommandLoop.notify_one();
     }
 
     void receive(handle_t handle, const char* data, std::size_t size)

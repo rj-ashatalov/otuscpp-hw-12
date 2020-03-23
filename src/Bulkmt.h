@@ -7,6 +7,7 @@
 #include <queue>
 #include <mutex>
 #include <zconf.h>
+#include <type_traits>
 #include "Sequence.h"
 #include "InfinitSequence.h"
 #include "events/EventDispatcher.h"
@@ -48,6 +49,8 @@ class Bulkmt
                 _currentState->Finalize();
             }
 
+            _needCleanOpenBlocks = std::is_same<std::remove_reference_t<T>, InfinitSequence>::value;
+
             auto typeIndex = std::type_index(typeid(std::remove_reference_t<T>));
             auto it = _typeToInterpreter.find(typeIndex);
             if (it == _typeToInterpreter.end())
@@ -71,11 +74,25 @@ class Bulkmt
             mainMetrics.lineCount++;
         }
 
+        void CleanOpenBlocks()
+        {
+            if (_needCleanOpenBlocks)
+            {
+                _needCleanOpenBlocks = false;
+                Finalize();
+            }
+        }
+
         void ExecuteAll(const std::string& data, size_t size)
         {
             if (size == 1 && *data.data() == '\0')
             {
-                SetState<Sequence>();
+                Finalize();
+                return;
+            }
+
+            if (size == 1 && data == "\n")
+            {
                 return;
             }
 
@@ -94,10 +111,11 @@ class Bulkmt
 
         void Finalize()
         {
-            _currentState->Finalize();
+            SetState<Sequence>();
         }
 
         int commandBufCount;
     private:
         std::shared_ptr<IInterpreterState> _currentState;
+        bool _needCleanOpenBlocks = false;
 };
