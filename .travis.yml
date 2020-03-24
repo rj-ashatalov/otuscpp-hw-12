@@ -4,8 +4,7 @@ compiler: clang
 addons:
   apt:
     packages:
-    - libboost-test-dev
-    - boost1.71
+    - libboost-all-dev
     - doxygen
     - graphviz
 script:
