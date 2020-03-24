@@ -5,6 +5,7 @@ addons:
   apt:
     packages:
     - libboost-test-dev
+    - libboost-system
     - doxygen
     - graphviz
 script:
