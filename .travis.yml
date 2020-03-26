@@ -2,11 +2,11 @@ dist: xenial
 language: cpp
 compiler: clang
 install:
-  - sudo apt install libboost-system1.71-dev
+  - sudo apt-get install libboost-system1.71-dev
 addons:
   apt:
     packages:
-    - libboost-test1.71-dev
+    - libboost-test-dev
     - doxygen
     - graphviz
 script:
