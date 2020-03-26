@@ -1,15 +1,17 @@
 dist: xenial
 language: cpp
 compiler: clang
+before_install:
+  - sudo add-apt-repository ppa:boost-latest/ppa
+  - sudo apt-get update
+install:
+  - sudo apt-get install libboost1.71-all-dev
 addons:
   apt:
     packages:
     - doxygen
     - graphviz
 script:
-- sudo add-apt-repository ppa:boost-latest/ppa
-- sudo apt-get update
-- sudo apt-get install libboost1.71-all-dev
 - cmake .
 - cmake --build .
 - cmake --build . --target test
