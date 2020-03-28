@@ -1,9 +1,6 @@
 dist: xenial
 language: cpp
 compiler: clang
-install:
-  - sudo add-apt-repository ppa:boost-latest/ppa -y
-  - sudo apt-get update
 addons:
   apt:
     packages:
