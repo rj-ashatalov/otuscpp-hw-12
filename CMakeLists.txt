@@ -31,10 +31,10 @@ set_target_properties(test_version PROPERTIES
         )
 
 set(COMMON_LIBS
-        ${Boost_LIBRARIES}
         async
         patch_version
-        Threads::Threads)
+        Threads::Threads
+        ${Boost_LIBRARIES})
 
 target_link_libraries(bulk_client ${COMMON_LIBS})
 target_link_libraries(bulk_server ${COMMON_LIBS})
