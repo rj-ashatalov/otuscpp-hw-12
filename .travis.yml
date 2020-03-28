@@ -7,8 +7,8 @@ install:
 addons:
   apt:
     packages:
-    - libboost1.71-test-dev
-    - libboost1.71-system-dev
+    - libboost-test-dev
+    - libboost-system-dev
     - doxygen
     - graphviz
 script:
