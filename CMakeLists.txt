@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.2)
 project(bulk_server VERSION 0.0.$ENV{TRAVIS_BUILD_NUMBER})
 
 find_package(Threads REQUIRED)
-find_package(Boost COMPONENTS system REQUIRED)
-find_package(Boost COMPONENTS unit_test_framework REQUIRED)
+find_package(Boost 1.58 COMPONENTS system REQUIRED)
+find_package(Boost 1.58 COMPONENTS unit_test_framework REQUIRED)
 
 configure_file(version.h.in ${PROJECT_SOURCE_DIR}/version.h)
 
@@ -34,7 +34,8 @@ set(COMMON_LIBS
         async
         patch_version
         Threads::Threads
-        ${Boost_LIBRARIES})
+        ${Boost_LIBRARIES}
+        boost_system)
 
 target_link_libraries(bulk_client ${COMMON_LIBS})
 target_link_libraries(bulk_server ${COMMON_LIBS})
