@@ -2,9 +2,6 @@ cmake_minimum_required(VERSION 3.2)
 
 project(bulk_server VERSION 0.0.$ENV{TRAVIS_BUILD_NUMBER})
 
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup(TARGETS)
-
 find_package(Threads REQUIRED)
 find_package(Boost COMPONENTS system REQUIRED)
 find_package(Boost COMPONENTS unit_test_framework REQUIRED)
