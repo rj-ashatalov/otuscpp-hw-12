@@ -35,11 +35,11 @@ class chat_session : public std::enable_shared_from_this<chat_session>
                     boost::asio::buffer(_read_msg.body(), Remote::Message::max_body_length),
                     [this, self](boost::system::error_code ec, std::size_t length)
                     {
-                        {
+                        /*{
                             std::unique_lock<std::mutex> locker(Utils::lockPrint);
                             std::cout << __PRETTY_FUNCTION__ << " read data: " << _read_msg.body() << "%end of message%"
                                       << std::endl;
-                        }
+                        }*/
                         if (length > 0)
                         {
                             async::receive(_handler, _read_msg.body(), length);
@@ -49,19 +49,19 @@ class chat_session : public std::enable_shared_from_this<chat_session>
                             }
                             else
                             {
-                                {
+                                /*{
                                     std::unique_lock<std::mutex> locker(Utils::lockPrint);
                                     std::cout << "Disconnected: " << ec.message() << std::endl;
-                                }
+                                }*/
                                 async::reset(_handler);
                             }
                         }
                         else if (ec)
                         {
-                            {
+                           /* {
                                 std::unique_lock<std::mutex> locker(Utils::lockPrint);
                                 std::cout << __PRETTY_FUNCTION__ << " error: " << ec.message() << std::endl;
-                            }
+                            }*/
                             async::reset(_handler);
                         }
                     });
@@ -86,10 +86,10 @@ class BulkServer
 
         ~BulkServer()
         {
-            {
+            /*{
                 std::unique_lock<std::mutex> locker(Utils::lockPrint);
                 std::cout << __PRETTY_FUNCTION__ << std::endl;
-            }
+            }*/
             if (_handler)
             {
                 async::disconnect(_handler);
@@ -104,8 +104,8 @@ class BulkServer
                     {
                         if (!ec)
                         {
-                            std::unique_lock<std::mutex> locker(Utils::lockPrint);
-                            std::cout << __PRETTY_FUNCTION__ << std::endl;
+                            /*std::unique_lock<std::mutex> locker(Utils::lockPrint);
+                            std::cout << __PRETTY_FUNCTION__ << std::endl;*/
                             std::make_shared<chat_session>(std::move(_socket), _handler)->start();
                         }
 
