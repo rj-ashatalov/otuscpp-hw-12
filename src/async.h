@@ -7,7 +7,7 @@
 namespace async
 {
     struct Worker;
-    std::vector<std::shared_ptr<Worker>> _contextCache;
+    extern std::vector<std::shared_ptr<Worker>> _contextCache;
 
     using handle_t = void*;
 

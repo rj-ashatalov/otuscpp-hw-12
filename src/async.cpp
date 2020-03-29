@@ -95,6 +95,8 @@ namespace async
             }
     };
 
+    std::vector<std::shared_ptr<Worker>> _contextCache;
+
     handle_t connect(std::size_t bulk)
     {
         _contextCache.emplace_back(new Worker(bulk));
